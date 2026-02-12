@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Don't run as root
-RUN useradd -m engram
+RUN useradd -m engram && chown -R engram:engram /app
 USER engram
 
 EXPOSE 8000

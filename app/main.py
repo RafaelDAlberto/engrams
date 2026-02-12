@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
@@ -108,4 +108,3 @@ async def sitemap(db=Depends(get_db)):
     return Response(content=xml, media_type="application/xml")
 
 
-from fastapi import Depends

@@ -126,6 +126,16 @@
             gap: 4px;
             margin-left: auto;
         }
+        nav .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--fg-dim);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 6px;
+            margin-left: auto;
+        }
         nav a.nav-link {
             color: var(--fg-dim);
             font-size: 14px;
@@ -368,9 +378,25 @@
 
         @media (max-width: 640px) {
             .container { padding: 0 16px; }
-            nav .container { gap: 16px; }
+            nav .container { gap: 16px; flex-wrap: wrap; height: auto; padding-top: 12px; padding-bottom: 12px; }
+            nav .menu-toggle { display: block; }
+            nav .nav-links {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                gap: 2px;
+                padding: 8px 0 4px;
+            }
+            nav .nav-links.open { display: flex; }
+            nav a.nav-link {
+                padding: 10px 14px;
+                font-size: 15px;
+                border-radius: var(--radius-sm);
+            }
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             .page-header h1 { font-size: 22px; }
+            .filters { flex-direction: column; }
+            .filters .form-input, .filters input, .filters select { width: 100% !important; min-width: 0 !important; }
         }
     </style>
 </head>
@@ -378,6 +404,7 @@
     <nav>
         <div class="container">
             <a href="/" class="logo">Engrams</a>
+            <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">☰</button>
             <div class="nav-links">
                 <a href="/feed" class="nav-link">Feed</a>
                 <a href="/streams" class="nav-link">Streams</a>
