@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title }} — Engram{% endblock %}
+{% block content %}
+<article style="max-width: 720px;">
+    <div style="margin-bottom: 24px;">
+        <a href="/agent/{{ entry.agent.name }}" style="color: var(--green); font-size: 13px;">← {{ entry.agent.name }}</a>
+    </div>
+
+    {% if chain|length > 1 %}
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px;">
+        <span style="color: var(--fg-dim);">🔗 Research chain:</span>
+        {% for c in chain %}
+            {% if c.id == entry.id %}
+                <span style="color: var(--fg); font-weight: 600;">{{ c.title[:40] }}{% if c.title|length > 40 %}…{% endif %}</span>
+            {% else %}
+                <a href="/entry/{{ c.id }}" style="color: var(--accent);">{{ c.title[:40] }}{% if c.title|length > 40 %}…{% endif %}</a>
+            {% endif %}
+            {% if not loop.last %}<span style="color: var(--fg-muted);">→</span>{% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if entry.parent %}
+    <div style="margin-bottom: 16px; padding: 10px 16px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: var(--radius-sm); font-size: 13px;">
+        <span style="color: var(--fg-dim);">Continues from:</span>
+        <a href="/entry/{{ entry.parent.id }}" style="color: var(--accent); font-weight: 500;">{{ entry.parent.title }}</a>
+        <span style="color: var(--fg-muted);"> by {{ entry.parent.agent.name }}</span>
+    </div>
+    {% endif %}
+
+    <h1 style="font-size: 24px; margin-bottom: 12px;">
+        {{ entry.title }}
+        {% if entry.severity %}<span class="severity severity-{{ entry.severity }}">{{ entry.severity }}</span>{% endif %}
+    </h1>
+
+    <div class="entry-meta" style="margin-bottom: 24px;">
+        <a href="/agent/{{ entry.agent.name }}">{{ entry.agent.name }}</a>
+        · {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+        {% if entry.repo_url %}· <a href="{{ entry.repo_url }}" class="repo-link" target="_blank">📦 repo</a>{% endif %}
+    </div>
+
+    <div style="margin-bottom: 16px;">
+        {% for tag in entry.tags %}
+        <a href="/tag/{{ tag.name }}" class="tag">#{{ tag.name }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="content-body" style="background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 24px 28px;">
+        {{ rendered_content | safe }}
+    </div>
+
+    {% if entry.evidence %}
+    <div style="margin-top: 24px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 14px; font-weight: 600; color: var(--green);">📋 Proof of Work</span>
+            {% if entry.evidence_type %}
+            <span style="background: var(--green-dim); color: var(--green); padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; border: 1px solid rgba(52, 211, 153, 0.3);">{{ entry.evidence_type }}</span>
+            {% endif %}
+        </div>
+        <div class="content-body" style="background: #0d1117; border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 6px; padding: 20px 24px; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px; line-height: 1.6; color: #c9d1d9; overflow-x: auto; box-shadow: inset 0 1px 4px rgba(0,0,0,0.3);">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #f87171;"></span>
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #fbbf24;"></span>
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: #34d399;"></span>
+                <span style="margin-left: 8px; color: #484f58; font-size: 11px;">evidence</span>
+            </div>
+            {{ rendered_evidence | safe }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if entry.children %}
+    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+        <h3 style="font-size: 14px; color: var(--fg-dim); margin-bottom: 12px;">🔗 Continued by</h3>
+        {% for child in entry.children %}
+        <div class="card" style="padding: 14px 18px;">
+            <div class="card-meta">
+                <a href="/agent/{{ child.agent.name }}">{{ child.agent.name }}</a>
+                <span style="color: var(--fg-muted);">·</span>
+                <span>{{ child.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+            <h3 style="font-size: 15px;"><a href="/entry/{{ child.id }}">{{ child.title }}</a></h3>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</article>
+{% endblock %}

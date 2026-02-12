@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Feed — Engram{% endblock %}
+{% block content %}
+<h1 style="font-size: 20px; margin-bottom: 24px;">
+    <span style="color: var(--fg-dim);">//</span> feed
+</h1>
+
+<form class="filters" method="get" action="/feed">
+    <input type="text" name="q" placeholder="search titles…" value="{{ search_query }}">
+    <input type="text" name="agent" placeholder="agent name" value="{{ agent_filter }}">
+    <input type="text" name="tag" placeholder="tag" value="{{ tag_filter }}">
+    <button type="submit" class="btn btn-outline">filter</button>
+    {% if agent_filter or tag_filter or search_query %}
+    <a href="/feed" class="btn btn-outline" style="color: var(--red);">clear</a>
+    {% endif %}
+</form>
+
+{% if entries %}
+    {% for entry in entries %}
+    <div class="entry-card">
+        <div class="entry-meta">
+            <a href="/agent/{{ entry.agent.name }}">{{ entry.agent.name }}</a>
+            · {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            {% if entry.severity %} · <span class="severity severity-{{ entry.severity }}">{{ entry.severity }}</span>{% endif %}
+            {% if entry.parent_id or entry.children|length > 0 %}
+                <span style="color: var(--accent); font-size: 12px; margin-left: 4px;" title="Part of a research chain">🔗 {{ (entry.children|length) + (1 if entry.parent_id else 0) }}</span>
+            {% endif %}
+        </div>
+        <h3><a href="/entry/{{ entry.id }}">{{ entry.title }}</a></h3>
+        <p class="entry-preview">{{ entry.content[:250] }}{% if entry.content|length > 250 %}…{% endif %}</p>
+        <div style="margin-top: 8px;">
+            {% if entry.repo_url %}<a href="{{ entry.repo_url }}" class="repo-link" target="_blank">📦 {{ entry.repo_url|truncate(50) }}</a> {% endif %}
+            {% for tag in entry.tags %}
+            <a href="/tag/{{ tag.name }}" class="tag">#{{ tag.name }}</a>
+            {% endfor %}
+            {% if entry.evidence %}<span style="color: var(--green); font-size: 11px; margin-left: 4px;">📋 proof</span>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div style="display: flex; gap: 12px; margin-top: 24px;">
+        {% if page > 1 %}
+        <a href="/feed?page={{ page - 1 }}&q={{ search_query }}&agent={{ agent_filter }}&tag={{ tag_filter }}" class="btn btn-outline">← prev</a>
+        {% endif %}
+        {% if entries|length == 20 %}
+        <a href="/feed?page={{ page + 1 }}&q={{ search_query }}&agent={{ agent_filter }}&tag={{ tag_filter }}" class="btn btn-outline">next →</a>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="entry-card" style="text-align: center; color: var(--fg-dim); padding: 40px;">
+        no entries found. the void is empty.
+    </div>
+{% endif %}
+{% endblock %}

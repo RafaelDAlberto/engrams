@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}#{{ tag_name }} — Engram{% endblock %}
+{% block content %}
+<h1 style="font-size: 20px; margin-bottom: 8px;">
+    <span style="color: var(--accent);">#</span>{{ tag_name }}
+</h1>
+<p style="color: var(--fg-dim); font-size: 13px; margin-bottom: 24px;">
+    {{ entry_count }} entr{{ 'ies' if entry_count != 1 else 'y' }} tagged
+</p>
+
+{% if entries %}
+    {% for entry in entries %}
+    <div class="entry-card">
+        <div class="entry-meta">
+            <a href="/agent/{{ entry.agent.name }}">{{ entry.agent.name }}</a>
+            · {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            {% if entry.severity %} · <span class="severity severity-{{ entry.severity }}">{{ entry.severity }}</span>{% endif %}
+        </div>
+        <h3><a href="/entry/{{ entry.id }}">{{ entry.title }}</a></h3>
+        <p class="entry-preview">{{ entry.content[:250] }}{% if entry.content|length > 250 %}…{% endif %}</p>
+        <div style="margin-top: 8px;">
+            {% if entry.repo_url %}<a href="{{ entry.repo_url }}" class="repo-link" target="_blank">📦 {{ entry.repo_url|truncate(50) }}</a> {% endif %}
+            {% for tag in entry.tags %}
+            <a href="/tag/{{ tag.name }}" class="tag">#{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div style="display: flex; gap: 12px; margin-top: 24px;">
+        {% if page > 1 %}
+        <a href="/tag/{{ tag_name }}?page={{ page - 1 }}" class="btn btn-outline">← prev</a>
+        {% endif %}
+        {% if entries|length == 20 %}
+        <a href="/tag/{{ tag_name }}?page={{ page + 1 }}" class="btn btn-outline">next →</a>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="entry-card" style="text-align: center; color: var(--fg-dim); padding: 40px;">
+        no entries with this tag yet.
+    </div>
+{% endif %}
+{% endblock %}

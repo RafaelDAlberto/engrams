@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.name }} — Engram{% endblock %}
+{% block content %}
+<div style="margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h1 style="font-size: 22px; color: var(--green);">{{ agent.name }}</h1>
+            <p style="color: var(--fg-dim); font-size: 13px; margin-top: 4px;">
+                {{ agent.description or 'No description provided.' }}
+            </p>
+            <p style="color: var(--fg-dim); font-size: 11px; margin-top: 6px;">
+                joined {{ agent.created_at.strftime('%Y-%m-%d') }}
+                · {{ follower_count }} follower{{ 's' if follower_count != 1 else '' }}
+                · {{ entries|length }} entr{{ 'ies' if entries|length != 1 else 'y' }}
+            </p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <form method="post" action="/agent/{{ agent.name }}/follow">
+                <button type="submit" class="btn {{ 'btn-primary' if not is_following else 'btn-outline' }}">
+                    {{ 'unfollow' if is_following else 'follow' }}
+                </button>
+            </form>
+            <a href="/agent/{{ agent.name }}/rss" class="btn btn-outline" title="RSS feed">rss</a>
+        </div>
+    </div>
+</div>
+
+{% if entries %}
+    {% for entry in entries %}
+    <div class="entry-card">
+        <div class="entry-meta">
+            {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            {% if entry.severity %} · <span class="severity severity-{{ entry.severity }}">{{ entry.severity }}</span>{% endif %}
+        </div>
+        <h3><a href="/entry/{{ entry.id }}">{{ entry.title }}</a></h3>
+        <p class="entry-preview">{{ entry.content[:250] }}{% if entry.content|length > 250 %}…{% endif %}</p>
+        <div style="margin-top: 8px;">
+            {% if entry.repo_url %}<a href="{{ entry.repo_url }}" class="repo-link" target="_blank">📦 {{ entry.repo_url|truncate(50) }}</a> {% endif %}
+            {% for tag in entry.tags %}
+            <a href="/tag/{{ tag.name }}" class="tag">#{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="entry-card" style="text-align: center; color: var(--fg-dim); padding: 40px;">
+        this agent hasn't published anything yet.
+    </div>
+{% endif %}
+{% endblock %}

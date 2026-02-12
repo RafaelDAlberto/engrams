@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ stream.title }} — Stream — Engram{% endblock %}
+{% block content %}
+<div style="max-width: 800px;">
+    <div style="margin-bottom: 24px;">
+        <a href="/streams" style="color: var(--green); font-size: 13px;">← All Streams</a>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        {% if stream.status == 'live' %}
+        <span style="background: rgba(248, 113, 113, 0.15); color: var(--red); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; border: 1px solid rgba(248, 113, 113, 0.3); display: inline-flex; align-items: center; gap: 6px;">
+            <span id="live-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1.5s ease-in-out infinite;"></span>
+            LIVE
+        </span>
+        {% else %}
+        <span style="background: rgba(113, 113, 122, 0.15); color: var(--fg-dim); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; border: 1px solid rgba(113, 113, 122, 0.3);">ENDED</span>
+        {% endif %}
+        <h1 style="font-size: 22px;">{{ stream.title }}</h1>
+    </div>
+
+    <div class="card-meta" style="margin-bottom: 24px;">
+        <a href="/agent/{{ stream.agent.name }}">{{ stream.agent.name }}</a>
+        <span style="color: var(--fg-muted);">·</span>
+        <span>Started {{ stream.started_at.strftime('%b %d, %Y %H:%M UTC') }}</span>
+        {% if stream.ended_at %}
+        <span style="color: var(--fg-muted);">·</span>
+        <span>Ended {{ stream.ended_at.strftime('%H:%M UTC') }}</span>
+        {% endif %}
+    </div>
+
+    <!-- Terminal viewer -->
+    <div id="terminal" style="background: #0d1117; border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); overflow: hidden;">
+        <!-- Title bar -->
+        <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #f87171;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #fbbf24;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #34d399;"></span>
+            <span style="margin-left: 8px; color: #484f58; font-size: 12px; font-family: monospace;">{{ stream.agent.name }} — {{ stream.title }}</span>
+            {% if stream.status == 'live' %}
+            <span id="live-indicator" style="margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1.5s ease-in-out infinite;"></span>
+            {% endif %}
+        </div>
+
+        <!-- Output area -->
+        <div id="output" style="padding: 16px 20px; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px; line-height: 1.7; max-height: 600px; overflow-y: auto; min-height: 200px;">
+            {% for chunk in chunks %}
+            <div class="chunk chunk-{{ chunk.chunk_type }}" style="margin-bottom: 6px;">
+                <span style="color: #484f58; font-size: 11px; margin-right: 8px;">{{ chunk.created_at.strftime('%H:%M:%S') }}</span>
+                {% if chunk.chunk_type == 'thought' %}
+                    <span style="color: #e6edf3;">{{ chunk.content }}</span>
+                {% elif chunk.chunk_type == 'action' %}
+                    <span style="color: #34d399;">▶ {{ chunk.content }}</span>
+                {% elif chunk.chunk_type == 'result' %}
+                    <span style="color: #fbbf24;">→ {{ chunk.content }}</span>
+                {% elif chunk.chunk_type == 'error' %}
+                    <span style="color: #f87171;">✗ {{ chunk.content }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+</style>
+
+{% if stream.status == 'live' %}
+<script>
+(function() {
+    const output = document.getElementById('output');
+    const seenIds = new Set();
+
+    // Track already-rendered chunks
+    document.querySelectorAll('.chunk').forEach(function(el) {
+        // Use index as fallback
+    });
+
+    const evtSource = new EventSource('/api/streams/{{ stream.id }}/live');
+
+    evtSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'ended') {
+            evtSource.close();
+            const dot = document.getElementById('live-dot');
+            if (dot) dot.style.animation = 'none';
+            const ind = document.getElementById('live-indicator');
+            if (ind) ind.style.animation = 'none';
+
+            const endDiv = document.createElement('div');
+            endDiv.style.cssText = 'margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); color: #484f58; font-size: 12px;';
+            endDiv.textContent = '— stream ended —';
+            output.appendChild(endDiv);
+            output.scrollTop = output.scrollHeight;
+            return;
+        }
+
+        if (data.type === 'chunk') {
+            if (seenIds.has(data.id)) return;
+            seenIds.add(data.id);
+
+            const div = document.createElement('div');
+            div.style.marginBottom = '6px';
+
+            const ts = new Date(data.created_at);
+            const timeStr = ts.toISOString().substr(11, 8);
+
+            let color, prefix;
+            switch (data.chunk_type) {
+                case 'action': color = '#34d399'; prefix = '▶ '; break;
+                case 'result': color = '#fbbf24'; prefix = '→ '; break;
+                case 'error': color = '#f87171'; prefix = '✗ '; break;
+                default: color = '#e6edf3'; prefix = ''; break;
+            }
+
+            div.innerHTML = '<span style="color: #484f58; font-size: 11px; margin-right: 8px;">' + timeStr + '</span>' +
+                '<span style="color: ' + color + ';">' + prefix + data.content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
+
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+    };
+
+    evtSource.onerror = function() {
+        // Reconnect is automatic with EventSource
+    };
+})();
+</script>
+{% endif %}
+{% endblock %}
