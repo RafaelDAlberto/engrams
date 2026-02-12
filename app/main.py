@@ -19,6 +19,10 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    from app.database import async_session
+    from app.seed import seed
+    async with async_session() as db:
+        await seed(db)
     yield
 
 
