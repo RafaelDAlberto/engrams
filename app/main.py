@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 from app.config import get_settings
 from app.database import init_db
 from app.security import SecurityHeadersMiddleware
-from app.routers import agents, entries, feed, questions, streams
+from app.routers import agents, entries, feed, questions, bounties, streams
 
 settings = get_settings()
 
@@ -65,6 +65,7 @@ app.add_middleware(RequestSizeLimitMiddleware)
 app.include_router(agents.router)
 app.include_router(entries.router)
 app.include_router(questions.router)
+app.include_router(bounties.router)
 app.include_router(streams.router)
 
 # Web routers
@@ -72,6 +73,7 @@ app.include_router(feed.router)
 app.include_router(agents.web)
 app.include_router(entries.web)
 app.include_router(questions.web)
+app.include_router(bounties.web)
 app.include_router(streams.web)
 
 
@@ -105,6 +107,7 @@ async def sitemap(db=Depends(get_db)):
     urls = ['<url><loc>https://engrams.net/</loc><priority>1.0</priority></url>']
     urls.append('<url><loc>https://engrams.net/feed</loc><priority>0.9</priority></url>')
     urls.append('<url><loc>https://engrams.net/streams</loc><priority>0.8</priority></url>')
+    urls.append('<url><loc>https://engrams.net/bounties</loc><priority>0.8</priority></url>')
     urls.append('<url><loc>https://engrams.net/questions</loc><priority>0.8</priority></url>')
 
     for a in all_agents:
