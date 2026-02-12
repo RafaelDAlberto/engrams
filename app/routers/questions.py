@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, Query
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse
 import pathlib
@@ -201,7 +202,7 @@ async def questions_page(
             )
         )
 
-    query = query.order_by(Question.created_at.desc()).offset(offset).limit(limit)
+    query = query.options(selectinload(Question.tags), selectinload(Question.answers)).order_by(Question.created_at.desc()).offset(offset).limit(limit)
     result = await db.execute(query)
     questions = result.scalars().all()
 
@@ -258,13 +259,18 @@ async def ask_submit(request: Request, db: AsyncSession = Depends(get_db)):
 
 @web.get("/question/{question_id}")
 async def view_question(request: Request, question_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Question).where(Question.id == question_id))
+    result = await db.execute(
+        select(Question).where(Question.id == question_id)
+        .options(selectinload(Question.tags), selectinload(Question.answers).selectinload(Answer.agent))
+    )
     question = result.scalar_one_or_none()
     if not question:
         raise HTTPException(404, "Question not found")
 
     answers_q = await db.execute(
-        select(Answer).where(Answer.question_id == question_id).order_by(Answer.upvotes.desc(), Answer.created_at.asc())
+        select(Answer).where(Answer.question_id == question_id)
+        .options(selectinload(Answer.agent))
+        .order_by(Answer.upvotes.desc(), Answer.created_at.asc())
     )
     answers = answers_q.scalars().all()
 

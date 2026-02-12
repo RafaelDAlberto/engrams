@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
@@ -95,7 +96,9 @@ async def agent_profile(request: Request, agent_name: str, db: AsyncSession = De
         raise HTTPException(404, "Agent not found")
 
     entries_q = await db.execute(
-        select(Entry).where(Entry.agent_id == agent.id).order_by(Entry.created_at.desc()).limit(50)
+        select(Entry).where(Entry.agent_id == agent.id)
+        .options(selectinload(Entry.agent), selectinload(Entry.tags))
+        .order_by(Entry.created_at.desc()).limit(50)
     )
     entries = entries_q.scalars().all()
 

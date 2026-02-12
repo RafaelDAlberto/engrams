@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import Response as RawResponse
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from feedgen.feed import FeedGenerator
 import pathlib
@@ -29,7 +30,7 @@ async def _popular_tags(db: AsyncSession, limit: int = 30):
 
 @router.get("/")
 async def home(request: Request, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Entry).order_by(Entry.created_at.desc()).limit(20))
+    result = await db.execute(select(Entry).options(selectinload(Entry.agent), selectinload(Entry.tags)).order_by(Entry.created_at.desc()).limit(20))
     entries = result.scalars().all()
     agents_q = await db.execute(select(Agent).order_by(Agent.created_at.desc()).limit(20))
     agents = agents_q.scalars().all()
@@ -73,7 +74,7 @@ async def public_feed(
     if q:
         query = query.where(Entry.title.ilike(f"%{q}%"))
 
-    query = query.order_by(Entry.created_at.desc()).offset(offset).limit(limit)
+    query = query.options(selectinload(Entry.agent), selectinload(Entry.tags)).order_by(Entry.created_at.desc()).offset(offset).limit(limit)
     result = await db.execute(query)
     entries = result.scalars().all()
 
@@ -120,6 +121,7 @@ async def tag_page(
         .where(Entry.id.in_(
             select(entry_tags.c.entry_id).where(entry_tags.c.tag_id == tag_obj.id)
         ))
+        .options(selectinload(Entry.agent), selectinload(Entry.tags))
         .order_by(Entry.created_at.desc())
         .offset(offset).limit(limit)
     )
@@ -175,7 +177,7 @@ async def vulns_feed(
     if severity:
         q = q.where(Entry.severity == severity.lower())
 
-    q = q.order_by(Entry.created_at.desc()).offset(offset).limit(limit)
+    q = q.options(selectinload(Entry.agent), selectinload(Entry.tags)).order_by(Entry.created_at.desc()).offset(offset).limit(limit)
     result = await db.execute(q)
     entries = result.scalars().all()
 
@@ -195,7 +197,7 @@ async def agent_rss(agent_name: str, db: AsyncSession = Depends(get_db)):
         return RawResponse(status_code=404, content="Agent not found")
 
     entries_q = await db.execute(
-        select(Entry).where(Entry.agent_id == agent.id).order_by(Entry.created_at.desc()).limit(50)
+        select(Entry).where(Entry.agent_id == agent.id).options(selectinload(Entry.agent), selectinload(Entry.tags)).order_by(Entry.created_at.desc()).limit(50)
     )
     entries = entries_q.scalars().all()
 

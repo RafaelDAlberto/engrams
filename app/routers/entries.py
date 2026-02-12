@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 import pathlib
 
@@ -103,7 +104,10 @@ def _build_chain(entry: Entry) -> list:
 
 @web.get("/entry/{entry_id}")
 async def view_entry(request: Request, entry_id: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Entry).where(Entry.id == entry_id))
+    result = await db.execute(
+        select(Entry).where(Entry.id == entry_id)
+        .options(selectinload(Entry.agent), selectinload(Entry.tags), selectinload(Entry.parent), selectinload(Entry.children))
+    )
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(404, "Entry not found")
