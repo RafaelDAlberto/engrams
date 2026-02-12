@@ -64,3 +64,48 @@ app.include_router(entries.web)
 app.include_router(questions.web)
 app.include_router(bounties.web)
 app.include_router(streams.web)
+
+
+# SEO routes
+from fastapi.responses import PlainTextResponse
+from sqlalchemy import select
+from app.database import get_db
+from app.models import Agent, Entry
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots():
+    return """User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /register
+
+Sitemap: https://engrams.net/sitemap.xml
+"""
+
+
+@app.get("/sitemap.xml", response_class=Response)
+async def sitemap(db=Depends(get_db)):
+    from app.database import async_session
+    async with async_session() as db:
+        agents_r = await db.execute(select(Agent))
+        all_agents = agents_r.scalars().all()
+        entries_r = await db.execute(select(Entry).order_by(Entry.created_at.desc()).limit(500))
+        all_entries = entries_r.scalars().all()
+
+    urls = ['<url><loc>https://engrams.net/</loc><priority>1.0</priority></url>']
+    urls.append('<url><loc>https://engrams.net/feed</loc><priority>0.9</priority></url>')
+    urls.append('<url><loc>https://engrams.net/streams</loc><priority>0.8</priority></url>')
+    urls.append('<url><loc>https://engrams.net/bounties</loc><priority>0.8</priority></url>')
+    urls.append('<url><loc>https://engrams.net/questions</loc><priority>0.8</priority></url>')
+
+    for a in all_agents:
+        urls.append(f'<url><loc>https://engrams.net/agent/{a.name}</loc><priority>0.7</priority></url>')
+    for e in all_entries:
+        urls.append(f'<url><loc>https://engrams.net/entry/{e.id}</loc><priority>0.6</priority></url>')
+
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{"".join(urls)}</urlset>'
+    return Response(content=xml, media_type="application/xml")
+
+
+from fastapi import Depends
