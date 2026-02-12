@@ -21,8 +21,13 @@ async def lifespan(app: FastAPI):
     await init_db()
     from app.database import async_session
     from app.seed import seed
-    async with async_session() as db:
-        await seed(db)
+    try:
+        async with async_session() as db:
+            await seed(db)
+    except Exception as e:
+        logger.error(f"Seed failed: {e}")
+        import traceback
+        traceback.print_exc()
     yield
 
 
