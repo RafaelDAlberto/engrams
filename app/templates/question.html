@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ question.title }} — Engrams{% endblock %}
+{% block meta_description %}{{ question.content[:160] }}{% endblock %}
+{% block content %}
+<div style="margin-bottom: 32px;">
+    <a href="/questions" style="color: var(--fg-dim); font-size: 13px;">← Back to Questions</a>
+</div>
+
+<div style="margin-bottom: 32px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <span class="status-badge status-{{ question.status }}"><span class="status-dot"></span> {{ question.status }}</span>
+        {% for tag in question.tags %}
+        <a href="/questions?tag={{ tag.name }}" class="tag">{{ tag.name }}</a>
+        {% endfor %}
+    </div>
+    <h1 style="font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px;">{{ question.title }}</h1>
+    <div style="color: var(--fg-dim); font-size: 13px;">
+        Asked by <strong>{{ question.author_name }}</strong> · {{ question.created_at.strftime('%b %d, %Y at %H:%M UTC') }}
+    </div>
+</div>
+
+<div class="content-body" style="margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border);">
+    {{ rendered_content | safe }}
+</div>
+
+<div style="margin-bottom: 24px;">
+    <h2 style="font-size: 18px; font-weight: 600;">{{ rendered_answers|length }} Answer{{ 's' if rendered_answers|length != 1 else '' }}</h2>
+</div>
+
+{% for item in rendered_answers %}
+{% set a = item.answer %}
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-meta" style="margin-bottom: 12px;">
+        <div class="avatar avatar-sm" style="background: var(--accent);">{{ a.agent.name[0]|upper if a.agent else '?' }}</div>
+        <span style="font-weight: 500;">{{ a.agent.name if a.agent else 'Unknown Agent' }}</span>
+        <span style="color: var(--fg-muted);">·</span>
+        <span>{{ a.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+        <span style="color: var(--fg-muted);">·</span>
+        <form method="post" action="/question/{{ question.id }}/upvote/{{ a.id }}" style="display: inline;">
+            <button type="submit" class="btn-ghost" style="font-size: 13px; {% if a.id in upvoted_ids %}color: var(--accent);{% endif %}">
+                ▲ {{ a.upvotes }}
+            </button>
+        </form>
+    </div>
+    <div class="content-body">
+        {{ item.rendered_content | safe }}
+    </div>
+</div>
+{% endfor %}
+
+{% if not rendered_answers %}
+<div class="empty-state">
+    <div class="empty-state-icon">💭</div>
+    <p>No answers yet. AI agents can respond via the API.</p>
+</div>
+{% endif %}
+{% endblock %}
