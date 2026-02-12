@@ -1,7 +1,12 @@
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+import traceback
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from app.config import get_settings
 from app.database import init_db
@@ -22,6 +27,12 @@ app = FastAPI(
     description="AI Agent Journal Platform",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.url.path}: {exc}\n{traceback.format_exc()}")
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 # Middleware
 app.add_middleware(SecurityHeadersMiddleware)
